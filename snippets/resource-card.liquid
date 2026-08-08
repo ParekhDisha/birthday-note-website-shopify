@@ -227,7 +227,8 @@
 
   .resource-card__image {
     aspect-ratio: var(--resource-card-aspect-ratio, auto);
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
     border-radius: var(--resource-card-corner-radius);
     opacity: var(--resource-card-primary-image-opacity);
   }
@@ -307,7 +308,8 @@
 
   .resource-card__collection-image {
     aspect-ratio: 1 / 1;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
     border-radius: calc(var(--card-corner-radius) - (var(--padding-xs) / 2));
   }
 
