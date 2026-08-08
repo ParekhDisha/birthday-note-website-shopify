@@ -1,0 +1,408 @@
+{% doc %}
+  @prompt
+    I want a customisation field option for customer 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-customization-field-{{ ai_gen_id }} {
+    display: block;
+    width: {{ block.settings.desktop_width_percent }}%;
+    max-width: 100%;
+    padding: 24px;
+    background-color: {{ block.settings.background_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+    border: {{ block.settings.border_width }}px solid {{ block.settings.border_color }};
+  }
+
+  .ai-customization-field__heading-{{ ai_gen_id }} {
+    margin: 0 0 8px;
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.heading_size }}px;
+    font-weight: 600;
+  }
+
+  .ai-customization-field__description-{{ ai_gen_id }} {
+    margin: 0 0 16px;
+    color: {{ block.settings.text_color }};
+    font-size: {{ block.settings.description_size }}px;
+    opacity: 0.8;
+  }
+
+  .ai-customization-field__input-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    margin-bottom: 8px;
+  }
+
+  .ai-customization-field__input-{{ ai_gen_id }} {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    border: 1px solid {{ block.settings.input_border_color }};
+    border-radius: {{ block.settings.input_border_radius }}px;
+    background-color: {{ block.settings.input_background_color }};
+    color: {{ block.settings.input_text_color }};
+    transition: border-color 0.2s ease;
+  }
+
+  .ai-customization-field__input-{{ ai_gen_id }}:focus {
+    outline: none;
+    border-color: {{ block.settings.input_focus_border_color }};
+  }
+
+  .ai-customization-field__input-{{ ai_gen_id }}::placeholder {
+    color: {{ block.settings.input_text_color }};
+    opacity: 0.5;
+  }
+
+  .ai-customization-field__char-count-{{ ai_gen_id }} {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: {{ block.settings.text_color }};
+    opacity: 0.6;
+    text-align: right;
+  }
+
+  .ai-customization-field__char-count-{{ ai_gen_id }}.over-limit {
+    color: #d82c0d;
+    opacity: 1;
+  }
+
+  .ai-customization-field__price-{{ ai_gen_id }} {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid {{ block.settings.border_color }};
+    font-size: {{ block.settings.description_size }}px;
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-customization-field__price-label-{{ ai_gen_id }} {
+    opacity: 0.8;
+  }
+
+  .ai-customization-field__price-amount-{{ ai_gen_id }} {
+    font-weight: 600;
+    margin-left: 8px;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-customization-field-{{ ai_gen_id }} {
+      width: 100%;
+    }
+  }
+{% endstyle %}
+
+<customization-field-{{ ai_gen_id }}
+  class="ai-customization-field-{{ ai_gen_id }}"
+  data-max-chars="{{ block.settings.max_characters }}"
+  data-price="{{ block.settings.customization_price }}"
+  {{ block.shopify_attributes }}
+>
+  {% if block.settings.heading != blank %}
+    <h3 class="ai-customization-field__heading-{{ ai_gen_id }}">
+      {{ block.settings.heading }}
+    </h3>
+  {% endif %}
+
+  {% if block.settings.description != blank %}
+    <div class="ai-customization-field__description-{{ ai_gen_id }}">
+      {{ block.settings.description }}
+    </div>
+  {% endif %}
+
+  <div class="ai-customization-field__input-wrapper-{{ ai_gen_id }}">
+    {% if block.settings.input_type == 'single' %}
+      <input
+        type="text"
+        class="ai-customization-field__input-{{ ai_gen_id }}"
+        name="properties[{{ block.settings.property_name }}]"
+        placeholder="{{ block.settings.placeholder }}"
+        maxlength="{{ block.settings.max_characters }}"
+        {% if block.settings.required %}required{% endif %}
+        data-customization-input
+      >
+    {% else %}
+      <textarea
+        class="ai-customization-field__input-{{ ai_gen_id }}"
+        name="properties[{{ block.settings.property_name }}]"
+        placeholder="{{ block.settings.placeholder }}"
+        maxlength="{{ block.settings.max_characters }}"
+        rows="{{ block.settings.textarea_rows }}"
+        {% if block.settings.required %}required{% endif %}
+        data-customization-input
+      ></textarea>
+    {% endif %}
+
+    {% if block.settings.show_character_count %}
+      <span class="ai-customization-field__char-count-{{ ai_gen_id }}" data-char-count>
+        0 / {{ block.settings.max_characters }}
+      </span>
+    {% endif %}
+  </div>
+
+  {% if block.settings.customization_price > 0 %}
+    <div class="ai-customization-field__price-{{ ai_gen_id }}">
+      <span class="ai-customization-field__price-label-{{ ai_gen_id }}">
+        {{ block.settings.price_label }}
+      </span>
+      <span class="ai-customization-field__price-amount-{{ ai_gen_id }}" data-price-display>
+        {{ block.settings.customization_price | money }}
+      </span>
+    </div>
+  {% endif %}
+</customization-field-{{ ai_gen_id }}>
+
+<script>
+  (function() {
+    class CustomizationField{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.input = this.querySelector('[data-customization-input]');
+        this.charCount = this.querySelector('[data-char-count]');
+        this.maxChars = parseInt(this.dataset.maxChars);
+
+        if (this.input && this.charCount) {
+          this.input.addEventListener('input', () => this.updateCharCount());
+        }
+      }
+
+      updateCharCount() {
+        const currentLength = this.input.value.length;
+        this.charCount.textContent = `${currentLength} / ${this.maxChars}`;
+
+        if (currentLength > this.maxChars) {
+          this.charCount.classList.add('over-limit');
+        } else {
+          this.charCount.classList.remove('over-limit');
+        }
+      }
+    }
+
+    customElements.define('customization-field-{{ ai_gen_id }}', CustomizationField{{ ai_gen_id }});
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Product customization",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Personalize your product"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Description",
+      "default": "Add your custom text to make this product uniquely yours."
+    },
+    {
+      "type": "text",
+      "id": "property_name",
+      "label": "Property name",
+      "default": "Customization",
+      "info": "This name will appear in order details"
+    },
+    {
+      "type": "header",
+      "content": "Input field"
+    },
+    {
+      "type": "select",
+      "id": "input_type",
+      "label": "Input type",
+      "options": [
+        {
+          "value": "single",
+          "label": "Single line"
+        },
+        {
+          "value": "multi",
+          "label": "Multi-line"
+        }
+      ],
+      "default": "single"
+    },
+    {
+      "type": "text",
+      "id": "placeholder",
+      "label": "Placeholder text",
+      "default": "Enter your text here"
+    },
+    {
+      "type": "range",
+      "id": "max_characters",
+      "label": "Maximum characters",
+      "min": 10,
+      "max": 500,
+      "step": 10,
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "textarea_rows",
+      "label": "Textarea rows",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "default": 4,
+      "info": "Only applies to multi-line input"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_character_count",
+      "label": "Show character count",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "required",
+      "label": "Make field required",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Pricing"
+    },
+    {
+      "type": "text",
+      "id": "customization_price",
+      "label": "Customization price",
+      "default": "0",
+      "info": "Enter price in cents (e.g., 500 for ₹5.00). This is for display only."
+    },
+    {
+      "type": "text",
+      "id": "price_label",
+      "label": "Price label",
+      "default": "Customization fee:"
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "range",
+      "id": "desktop_width_percent",
+      "label": "Desktop width",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#f9f9f9"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border color",
+      "default": "#e0e0e0"
+    },
+    {
+      "type": "range",
+      "id": "border_width",
+      "label": "Border width",
+      "min": 0,
+      "max": 4,
+      "step": 1,
+      "unit": "px",
+      "default": 1
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "label": "Heading size",
+      "min": 12,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "description_size",
+      "label": "Description size",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Input style"
+    },
+    {
+      "type": "color",
+      "id": "input_background_color",
+      "label": "Background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "input_text_color",
+      "label": "Text",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "input_border_color",
+      "label": "Border",
+      "default": "#cccccc"
+    },
+    {
+      "type": "color",
+      "id": "input_focus_border_color",
+      "label": "Focus border",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "input_border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 16,
+      "step": 2,
+      "unit": "px",
+      "default": 4
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product customization"
+    }
+  ]
+}
+{% endschema %}
